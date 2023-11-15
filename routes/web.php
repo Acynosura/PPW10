@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LoginRegisterController;
 use App\Http\Controllers\SendEmailController;
 use App\Http\Controllers\CVController;
+use App\Http\Controllers\PostController;
+use App\Http\Controllers\GalleryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,7 +19,7 @@ use App\Http\Controllers\CVController;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('posts');
 });
 
 Route::controller(LoginRegisterController::class)->group(function() {
@@ -36,5 +38,7 @@ Route::controller(LoginRegisterController::class)->group(function() {
 
 Route::post('/post-email', [SendEmailController::class, 'store'])->name('post-email');
 
-Route::get('/send-mail', [SendEmailController::class,
-'index'])->name('kirim-email');
+Route::get('/send-mail', [SendEmailController::class, 'index'])->name('kirim-email');
+Route::resource('posts', PostController::class);
+Route::resource('gallery', GalleryController::class);
+Route::get('/dashboard2', [PostController::class, 'dashboard2'])-> name('dashboard2');
