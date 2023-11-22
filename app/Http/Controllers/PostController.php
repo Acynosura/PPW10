@@ -17,6 +17,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 
 use App\Models\Post;
+use GuzzleHttp\Client;
 
 class PostController extends Controller
 {
@@ -28,10 +29,12 @@ class PostController extends Controller
      */
     public function index(): View
     {
-        //get posts
-        $posts = Post::latest()->paginate(5);
-
-        //render view with posts
+        $client = new Client();
+        $url =  "http://localhost:8000/api/gallery";
+        $response = $client->request('GET', $url);
+        $content = $response->getBody()->getContents();
+        $content_array = json_decode($content, true);
+        $posts = $content_array['data']['data'];
         return view('posts.index', compact('posts'));
     }
     public function dashboard2()
@@ -59,34 +62,32 @@ class PostController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        //validate form
-        $this->validate($request, [
-            'image'     => 'required|image|mimetypes:image/jpeg,image/jpg,image/png|max:2048',
-            'title'     => 'required|min:5',
-            'content'   => 'required|min:10'
+        $title = $request->input('title');
+        $description = $request->input('content');
+
+        $picture = $request->file('image');
+        // dd($title,$description,$picture );
+
+        $client = new Client();
+        $url = "http://localhost:8000/api/gallery/store";
+        $response = $client->request('POST', $url, [
+            'multipart' => [
+                [
+                    'name' => 'title',
+                    'contents' => $title,
+                ],
+                [
+                    'name' => 'content',
+                    'contents' => $description,
+                ],
+                [
+                    'name' => 'image',
+                    'contents' => fopen($picture->getPathname(), 'r'),
+                    'filename' => $picture->getClientOriginalName(),
+                ],
+            ],
         ]);
 
-        //upload image
-        $image = $request->file('image');
-        $image->storeAs('posts', $image->hashName());
-        $thumbnail = $request->file('image')->storeAs('posts/thumbnail', $image->hashName());
-        $thumbnailpath = public_path('storage/posts/thumbnail/' . $image->hashName());
-        $this->resize($thumbnailpath, 150, 93);
-
-        $squere = $request->file('image')->storeAs('posts/square', $image->hashName());
-        $thumbnailpath = public_path('storage/posts/square/' . $image->hashName());
-        $this->resize($thumbnailpath, 250, 250);
-
-        //create post
-        Post::create([
-            'image'     => $image->hashName(),
-            'title'     => $request->title,
-            'content'   => $request->content,
-            'thumbnail' => $image->hashName(),
-            'squere' => $image->hashName()
-        ]);
-
-        //redirect to index
         return redirect()->route('posts.index')->with(['success' => 'Data Berhasil Disimpan!']);
     }
 
